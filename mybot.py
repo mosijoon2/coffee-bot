@@ -1,9 +1,11 @@
 from bale import Bot, Message, CallbackQuery
 from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
+import time
 
 bot = Bot(token="2028859092:UgoIEu76EzRSCwkFSP1uRfqoT8EWaRDxbso")
 
 pending_orders = {}
+last_message_time = {}
 
 @bot.event
 async def on_before_ready():
@@ -11,13 +13,21 @@ async def on_before_ready():
 
 @bot.event
 async def on_message(message: Message):
+    chat_id = message.chat.id
+    now = time.time()
+
+    # اگه از همین چت توی ۲ ثانیه گذشته پیام اومده، نادیده بگیر
+    if chat_id in last_message_time and now - last_message_time[chat_id] < 2:
+        return
+    last_message_time[chat_id] = now
+
     if message.content == "/start":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("☕ سفارش قهوه", callback_data="order"))
         await message.reply("سلام! به فروشگاه قهوه مارکو خوش اومدی ☕", components=keyboard)
 
-    elif message.chat.id in pending_orders:
-        order = pending_orders[message.chat.id]
+    elif chat_id in pending_orders:
+        order = pending_orders[chat_id]
         address = message.content
 
         await message.reply(
@@ -35,11 +45,10 @@ async def on_message(message: Message):
             f"📍 آدرس: {address}"
         )
 
-        del pending_orders[message.chat.id]
+        del pending_orders[chat_id]
 
 @bot.event
 async def on_callback(callback: CallbackQuery):
-
     if callback.data == "order":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("روبوستا ۱۰۰٪", callback_data="robusta"))
@@ -78,9 +87,7 @@ async def on_callback(callback: CallbackQuery):
             "blend_bean": "🫘 ترکیبی ۸۰/۲۰ — دانه",
         }
         selected = products[callback.data]
-
         pending_orders[callback.message.chat.id] = {"product": selected}
-
         await callback.message.reply(
             f"✅ انتخاب شما:\n{selected} — ۲۰۰ گرم\n\n"
             f"📍 حالا آدرس دقیق تحویلت رو بفرست:"
