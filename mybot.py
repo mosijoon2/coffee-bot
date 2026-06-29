@@ -28,12 +28,12 @@ async def on_message(message: Message):
         )
 
          await bot.send_message(
-                ADMIN_CHAT_ID,
+                ADMIN_CHAT_ID ="1515323038",
                 f"🔔 سفارش جدید!\n\n"
-                         f"👤 نام: {message.chat.first_name}\n"
-                         f"📦 محصول: {order['product']}\n"
-                         f"📍 آدرس: {order['address']}\n"
-                        f"📞 شماره تماس: {order['phone']}"
+                f"👤 نام: {message.chat.first_name}\n"
+                f"📦 محصول: {order['product']}\n"
+                f"📍 آدرس: {order['address']}\n"
+                f"📞 شماره تماس: {order['phone']}"
         )
 
         del pending_orders[message.chat.id]
