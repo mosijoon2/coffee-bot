@@ -1,11 +1,11 @@
 from bale import Bot, Message, CallbackQuery
 from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
-import time
 
-bot = Bot(token="2028859092:UgoIEu76EzRSCwkFSP1uRfqoT8EWaRDxbso")
+bot = Bot(token="1361182146:PB6Ij4r-d55Q2P6urCUUPoEjpmJ15DXKWDA")
+
+ADMIN_CHAT_ID = "1678159237"  # آیدی که نوتیفیکیشن سفارش‌ها بهش میره
 
 pending_orders = {}
-last_message_time = {}
 
 @bot.event
 async def on_before_ready():
@@ -13,42 +13,50 @@ async def on_before_ready():
 
 @bot.event
 async def on_message(message: Message):
-    chat_id = message.chat.id
-    now = time.time()
-
-    # اگه از همین چت توی ۲ ثانیه گذشته پیام اومده، نادیده بگیر
-    if chat_id in last_message_time and now - last_message_time[chat_id] < 2:
-        return
-    last_message_time[chat_id] = now
-
     if message.content == "/start":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("☕ سفارش قهوه", callback_data="order"))
         await message.reply("سلام! به فروشگاه قهوه مارکو خوش اومدی ☕", components=keyboard)
+        return
 
-    elif chat_id in pending_orders:
-        order = pending_orders[chat_id]
-        address = message.content
+    order = pending_orders.get(message.chat.id)
+    if not order:
+        return
 
+    # مرحله‌ی اول بعد از انتخاب محصول: گرفتن آدرس
+    if order["stage"] == "address":
+        order["address"] = message.content
+        order["stage"] = "phone"
+        await message.reply("📞 لطفاً شماره تماس خودتون رو وارد کنید:")
+        return
+
+    # مرحله‌ی دوم: گرفتن شماره تماس و نهایی کردن سفارش
+    if order["stage"] == "phone":
+        order["phone"] = message.content
+
+        # پیام تایید به خود مشتری
         await message.reply(
             f"✅ سفارش شما ثبت شد!\n\n"
             f"📦 محصول: {order['product']}\n"
-            f"📍 آدرس: {address}\n\n"
-            f"به زودی با شما تماس می‌گیریم 🙏"
+            f"📍 آدرس: {order['address']}\n"
+            f"📞 شماره تماس: {order['phone']}"
         )
 
+        # پیام نوتیفیکیشن به آیدی ادمین
         await bot.send_message(
-            "1678159237",
+            ADMIN_CHAT_ID = "1515323038"
             f"🔔 سفارش جدید!\n\n"
             f"👤 نام: {message.chat.first_name}\n"
             f"📦 محصول: {order['product']}\n"
-            f"📍 آدرس: {address}"
+            f"📍 آدرس: {order['address']}\n"
+            f"📞 شماره تماس: {order['phone']}"
         )
 
-        del pending_orders[chat_id]
+        del pending_orders[message.chat.id]
 
 @bot.event
 async def on_callback(callback: CallbackQuery):
+
     if callback.data == "order":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("روبوستا ۱۰۰٪", callback_data="robusta"))
@@ -87,7 +95,9 @@ async def on_callback(callback: CallbackQuery):
             "blend_bean": "🫘 ترکیبی ۸۰/۲۰ — دانه",
         }
         selected = products[callback.data]
-        pending_orders[callback.message.chat.id] = {"product": selected}
+
+        pending_orders[callback.message.chat.id] = {"product": selected, "stage": "address"}
+
         await callback.message.reply(
             f"✅ انتخاب شما:\n{selected} — ۲۰۰ گرم\n\n"
             f"📍 حالا آدرس دقیق تحویلت رو بفرست:"
