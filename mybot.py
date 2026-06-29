@@ -1,7 +1,7 @@
 from bale import Bot, Message, CallbackQuery
 from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
 
-bot = Bot(token="1361182146:PB6Ij4r-d55Q2P6urCUUPoEjpmJ15DXKWDA")
+bot = Bot(token="470916335:57OumjBih8NGf7v01kDaL64PZCHRyBToJR8")
 
 pending_orders = {}
 
