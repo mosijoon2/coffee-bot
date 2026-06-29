@@ -24,10 +24,15 @@ last_message_time = {}
 async def on_before_ready():
     await bot.delete_webhook()
 
-@bot.event
 async def on_message(message: Message):
+    print(f"📩 پیام دریافت شد | id={message.message_id} | chat={message.chat.id} | time={time.time()}")
     chat_id = message.chat.id
     now = time.time()
+    if chat_id in last_message_time and now - last_message_time[chat_id] < 2:
+        print("⛔ این پیام به‌خاطر دیبانس نادیده گرفته شد")
+        return
+    last_message_time[chat_id] = now
+    ...
 
     # اگه از همین چت توی ۲ ثانیه گذشته پیام اومده، نادیده بگیر
     if chat_id in last_message_time and now - last_message_time[chat_id] < 2:
