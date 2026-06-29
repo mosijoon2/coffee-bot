@@ -2,6 +2,18 @@
 from bale import Bot, Message, CallbackQuery
 from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
 import time
+import socket
+
+def ensure_single_instance(port=47834):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("127.0.0.1", port))
+    except OSError:
+        print("⚠️ یک نمونه از بات از قبل در حال اجراست.")
+        exit(1)
+    return s  # این آبجکت رو نگه دارید تا سوکت باز بمونه
+
+_lock = ensure_single_instance()
 
 bot = Bot(token="2028859092:UgoIEu76EzRSCwkFSP1uRfqoT8EWaRDxbso")
 
