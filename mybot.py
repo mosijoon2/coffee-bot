@@ -3,8 +3,6 @@ from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
 
 bot = Bot(token="1361182146:PB6Ij4r-d55Q2P6urCUUPoEjpmJ15DXKWDA")
 
-ADMIN_CHAT_ID = "1678159237"  # آیدی که نوتیفیکیشن سفارش‌ها بهش میره
-
 pending_orders = {}
 
 @bot.event
@@ -17,39 +15,24 @@ async def on_message(message: Message):
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("☕ سفارش قهوه", callback_data="order"))
         await message.reply("سلام! به فروشگاه قهوه مارکو خوش اومدی ☕", components=keyboard)
-        return
 
-    order = pending_orders.get(message.chat.id)
-    if not order:
-        return
+    elif message.chat.id in pending_orders:
+        order = pending_orders[message.chat.id]
+        address = message.content
 
-    # مرحله‌ی اول بعد از انتخاب محصول: گرفتن آدرس
-    if order["stage"] == "address":
-        order["address"] = message.content
-        order["stage"] = "phone"
-        await message.reply("📞 لطفاً شماره تماس خودتون رو وارد کنید:")
-        return
-
-    # مرحله‌ی دوم: گرفتن شماره تماس و نهایی کردن سفارش
-    if order["stage"] == "phone":
-        order["phone"] = message.content
-
-        # پیام تایید به خود مشتری
         await message.reply(
             f"✅ سفارش شما ثبت شد!\n\n"
             f"📦 محصول: {order['product']}\n"
-            f"📍 آدرس: {order['address']}\n"
-            f"📞 شماره تماس: {order['phone']}"
+            f"📍 آدرس: {address}\n\n"
+            f"به زودی با شما تماس می‌گیریم 🙏"
         )
 
-        # پیام نوتیفیکیشن به آیدی ادمین
         await bot.send_message(
-            ADMIN_CHAT_ID = "1515323038"
+            "1678159237",
             f"🔔 سفارش جدید!\n\n"
             f"👤 نام: {message.chat.first_name}\n"
             f"📦 محصول: {order['product']}\n"
-            f"📍 آدرس: {order['address']}\n"
-            f"📞 شماره تماس: {order['phone']}"
+            f"📍 آدرس: {address}"
         )
 
         del pending_orders[message.chat.id]
@@ -96,7 +79,7 @@ async def on_callback(callback: CallbackQuery):
         }
         selected = products[callback.data]
 
-        pending_orders[callback.message.chat.id] = {"product": selected, "stage": "address"}
+        pending_orders[callback.message.chat.id] = {"product": selected}
 
         await callback.message.reply(
             f"✅ انتخاب شما:\n{selected} — ۲۰۰ گرم\n\n"
