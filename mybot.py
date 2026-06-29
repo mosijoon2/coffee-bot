@@ -28,7 +28,7 @@ async def on_message(message: Message):
         )
 
         await bot.send_message(
-            "1678159237",
+            ADMIN_CHAT_ID = "1515323038",
             f"🔔 سفارش جدید!\n\n"
             f"👤 نام: {message.chat.first_name}\n"
             f"📦 محصول: {order['product']}\n"
