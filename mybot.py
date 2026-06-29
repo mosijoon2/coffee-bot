@@ -4,6 +4,7 @@ from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
 bot = Bot(token="2028859092:UgoIEu76EzRSCwkFSP1uRfqoT8EWaRDxbso")
 
 pending_orders = {}
+processed_messages = set()
 
 @bot.event
 async def on_before_ready():
@@ -11,6 +12,10 @@ async def on_before_ready():
 
 @bot.event
 async def on_message(message: Message):
+    if message.message_id in processed_messages:
+        return
+    processed_messages.add(message.message_id)
+
     if message.content == "/start":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("☕ سفارش قهوه", callback_data="order"))
@@ -19,30 +24,26 @@ async def on_message(message: Message):
     elif message.chat.id in pending_orders:
         order = pending_orders[message.chat.id]
         address = message.content
-        numbers = numbers
 
         await message.reply(
             f"✅ سفارش شما ثبت شد!\n\n"
             f"📦 محصول: {order['product']}\n"
             f"📍 آدرس: {address}\n\n"
-            f"شماره تماس:{numbers}\n\n"
             f"به زودی با شما تماس می‌گیریم 🙏"
         )
 
         await bot.send_message(
-            "1515323038",
+            "1678159237",
             f"🔔 سفارش جدید!\n\n"
             f"👤 نام: {message.chat.first_name}\n"
             f"📦 محصول: {order['product']}\n"
             f"📍 آدرس: {address}"
-            f"شماره تماس:{numbers}\n\n"
         )
 
         del pending_orders[message.chat.id]
 
 @bot.event
 async def on_callback(callback: CallbackQuery):
-
     if callback.data == "order":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("روبوستا ۱۰۰٪", callback_data="robusta"))
@@ -81,9 +82,7 @@ async def on_callback(callback: CallbackQuery):
             "blend_bean": "🫘 ترکیبی ۸۰/۲۰ — دانه",
         }
         selected = products[callback.data]
-
         pending_orders[callback.message.chat.id] = {"product": selected}
-
         await callback.message.reply(
             f"✅ انتخاب شما:\n{selected} — ۲۰۰ گرم\n\n"
             f"📍 حالا آدرس دقیق تحویلت رو بفرست:"
