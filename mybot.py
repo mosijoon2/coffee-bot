@@ -3,7 +3,7 @@ from bale.ui import InlineKeyboardMarkup, InlineKeyboardButton
 
 bot = Bot(token="1361182146:PB6Ij4r-d55Q2P6urCUUPoEjpmJ15DXKWDA")
 
-ADMIN_CHAT_ID = "1515323038"  # آیدی چت ادمین
+ADMIN_CHAT_ID = "1515323038"
 
 pending_orders = {}
 
@@ -23,18 +23,20 @@ async def on_message(message: Message):
     if not order:
         return
 
-    # مرحله‌ی اول بعد از انتخاب محصول: گرفتن آدرس
+    # مرحله‌ی اول: گرفتن آدرس
     if order["stage"] == "address":
         order["address"] = message.content
         order["stage"] = "phone"
-        await message.reply("📞 لطفاً شماره تماس خودتون رو وارد کنید:")
+
+        back_keyboard = InlineKeyboardMarkup()
+        back_keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_to_address"))
+        await message.reply("📞 لطفاً شماره تماس خودتون رو وارد کنید:", components=back_keyboard)
         return
 
     # مرحله‌ی دوم: گرفتن شماره تماس و نهایی کردن سفارش
     if order["stage"] == "phone":
         order["phone"] = message.content
 
-        # پیام تایید به خود مشتری
         await message.reply(
             f"✅ سفارش شما ثبت شد!\n\n"
             f"📦 محصول: {order['product']}\n"
@@ -43,7 +45,6 @@ async def on_message(message: Message):
             f"به زودی با شما تماس می‌گیریم 🙏"
         )
 
-        # پیام نوتیفیکیشن به آیدی ادمین
         await bot.send_message(
             ADMIN_CHAT_ID,
             f"🔔 سفارش جدید!\n\n"
@@ -58,10 +59,12 @@ async def on_message(message: Message):
 @bot.event
 async def on_callback(callback: CallbackQuery):
 
+    # ── انتخاب محصول ──────────────────────────────────────────
     if callback.data == "order":
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("روبوستا ۱۰۰٪", callback_data="robusta"))
         keyboard.add(InlineKeyboardButton("ترکیبی ۸۰/۲۰", callback_data="blend"))
+        keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
         await callback.message.reply(
             "📦 بسته‌های موجود:\n\n"
             "🟤 روبوستا ۱۰۰٪ — ۲۰۰ گرم\n"
@@ -74,6 +77,7 @@ async def on_callback(callback: CallbackQuery):
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("✅ آسیاب شده", callback_data="robusta_ground"))
         keyboard.add(InlineKeyboardButton("🫘 دانه", callback_data="robusta_bean"))
+        keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_order"))
         await callback.message.reply(
             "🟤 روبوستا ۱۰۰٪\n\nآسیاب شده یا دانه؟ 👇",
             components=keyboard
@@ -83,6 +87,7 @@ async def on_callback(callback: CallbackQuery):
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("✅ آسیاب شده", callback_data="blend_ground"))
         keyboard.add(InlineKeyboardButton("🫘 دانه", callback_data="blend_bean"))
+        keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_order"))
         await callback.message.reply(
             "🫘 ترکیبی ۸۰/۲۰\n\nآسیاب شده یا دانه؟ 👇",
             components=keyboard
@@ -91,17 +96,82 @@ async def on_callback(callback: CallbackQuery):
     elif callback.data in ["robusta_ground", "robusta_bean", "blend_ground", "blend_bean"]:
         products = {
             "robusta_ground": "🟤 روبوستا ۱۰۰٪ — آسیاب شده",
-            "robusta_bean": "🟤 روبوستا ۱۰۰٪ — دانه",
-            "blend_ground": "🫘 ترکیبی ۸۰/۲۰ — آسیاب شده",
-            "blend_bean": "🫘 ترکیبی ۸۰/۲۰ — دانه",
+            "robusta_bean":   "🟤 روبوستا ۱۰۰٪ — دانه",
+            "blend_ground":   "🫘 ترکیبی ۸۰/۲۰ — آسیاب شده",
+            "blend_bean":     "🫘 ترکیبی ۸۰/۲۰ — دانه",
         }
         selected = products[callback.data]
+        category = "robusta" if "robusta" in callback.data else "blend"
 
-        pending_orders[callback.message.chat.id] = {"product": selected, "stage": "address"}
+        pending_orders[callback.message.chat.id] = {
+            "product": selected,
+            "stage": "address",
+            "category": category,
+        }
 
+        back_keyboard = InlineKeyboardMarkup()
+        back_keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data=f"back_{category}"))
         await callback.message.reply(
             f"✅ انتخاب شما:\n{selected} — ۲۰۰ گرم\n\n"
-            f"📍 حالا آدرس دقیق تحویلت رو بفرست:"
+            f"📍 حالا آدرس دقیق تحویلت رو بفرست:",
+            components=back_keyboard
+        )
+
+    # ── دکمه‌های برگشت ────────────────────────────────────────
+    elif callback.data == "back_start":
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("☕ سفارش قهوه", callback_data="order"))
+        await callback.message.reply("سلام! به فروشگاه قهوه مارکو خوش اومدی ☕", components=keyboard)
+
+    elif callback.data == "back_order":
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("روبوستا ۱۰۰٪", callback_data="robusta"))
+        keyboard.add(InlineKeyboardButton("ترکیبی ۸۰/۲۰", callback_data="blend"))
+        keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_start"))
+        await callback.message.reply(
+            "📦 بسته‌های موجود:\n\n"
+            "🟤 روبوستا ۱۰۰٪ — ۲۰۰ گرم\n"
+            "🫘 ترکیب ۸۰/۲۰ — ۲۰۰ گرم\n\n"
+            "یکی رو انتخاب کن 👇",
+            components=keyboard
+        )
+
+    elif callback.data == "back_robusta":
+        pending_orders.pop(callback.message.chat.id, None)
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("✅ آسیاب شده", callback_data="robusta_ground"))
+        keyboard.add(InlineKeyboardButton("🫘 دانه", callback_data="robusta_bean"))
+        keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_order"))
+        await callback.message.reply(
+            "🟤 روبوستا ۱۰۰٪\n\nآسیاب شده یا دانه؟ 👇",
+            components=keyboard
+        )
+
+    elif callback.data == "back_blend":
+        pending_orders.pop(callback.message.chat.id, None)
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("✅ آسیاب شده", callback_data="blend_ground"))
+        keyboard.add(InlineKeyboardButton("🫘 دانه", callback_data="blend_bean"))
+        keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data="back_order"))
+        await callback.message.reply(
+            "🫘 ترکیبی ۸۰/۲۰\n\nآسیاب شده یا دانه؟ 👇",
+            components=keyboard
+        )
+
+    elif callback.data == "back_to_address":
+        order = pending_orders.get(callback.message.chat.id)
+        if order:
+            order["stage"] = "address"
+            order.pop("address", None)
+            category = order.get("category", "order")
+        else:
+            category = "order"
+
+        back_keyboard = InlineKeyboardMarkup()
+        back_keyboard.add(InlineKeyboardButton("🔙 برگشت", callback_data=f"back_{category}"))
+        await callback.message.reply(
+            "📍 آدرس دقیق تحویلت رو بفرست:",
+            components=back_keyboard
         )
 
 bot.run()
